@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys, re
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 import imageio
@@ -8,7 +7,7 @@ import rtoml
 config = {
     "image_type": [".jpg", ".png"],
     "fps": 30,
-    "output": "output",
+#    "output": "output",
     "quality": 10,
     "codec": "libx264",
     "max_workers":5
@@ -21,15 +20,16 @@ video_type = {
 def image_to_video(image_dir, output_path, image_files):
     if len(image_files) == 0:
         return
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
+#    if not os.path.exists(output_path):
+#        os.mkdir(output_path)
     with ThreadPoolExecutor(max_workers=config["max_workers"]) as executor:
         images = list(tqdm(executor.map(imageio.imread, image_files), total=len(
-            image_files), desc=f"{image_dir} Image Processing"))
-        
+            image_files), desc=f"{image_dir} Images Processing"))
+
     image_dir = os.path.normpath(image_dir)
-    filename = ''.join(image_dir.split(os.sep)) + video_type[config['codec']]
-    filepath = os.path.join(output_path, filename)
+    filename = re.split("\\\|\:|\/",image_dir)[-1] + output_path + video_type[config['codec']]
+    filepath = os.path.join(os.path.abspath(os.path.join(image_dir, "..")), filename)
+#    filename = '_'.join(re.split("\\\|\:|\/",image_dir)) + video_type[config['codec']]
 
     count = 0
     with imageio.get_writer(filepath, fps=config["fps"], quality=config["quality"], codec=config["codec"]) as video:
@@ -67,13 +67,14 @@ def main():
                         work_dict[dir][it] = []
                     work_dict[dir][it].append(i)
 
-    output_path = config["output"]
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
+#    output_path = config["output"]
+#    if not os.path.exists(output_path):
+#        os.mkdir(output_path)
 
     for key, value in work_dict.items():
         for i, j in value.items():
-            image_to_video(key, output_path if len(value) == 0 else os.path.join(output_path, i.lstrip(".")), sorted(j))
+            image_to_video(key, i, sorted(j))
+#            image_to_video(key, output_path if len(value) == 0 else os.path.join(output_path, i.lstrip(".")), sorted(j))
 
 
 if __name__ == "__main__":
